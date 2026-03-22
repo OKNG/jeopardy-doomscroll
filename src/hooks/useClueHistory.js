@@ -1,5 +1,7 @@
 import { useRef, useState } from 'react'
-import { fetchRandomClue, fetchCategory } from '../api/clues'
+import { fetchRandomClues, fetchCategory } from '../api/clues'
+
+const BUFFER_SIZE = 5
 
 export function useClueHistory() {
   const [state, setState] = useState({
@@ -10,67 +12,134 @@ export function useClueHistory() {
     error: null,
   })
 
-  // Mirror latest state in a ref so async functions can read it without stale closures
   const stateRef = useRef(state)
   stateRef.current = state
 
   const categoryCache = useRef(new Map())
   const seenIds = useRef(new Set())
+  const isReplenishing = useRef(false)
 
-  async function advanceForward() {
-    const { history, currentIndex } = stateRef.current
+  function prefetchCategory(categoryId) {
+    if (categoryCache.current.has(categoryId)) return
+    fetchCategory(categoryId)
+      .then(cat => {
+        categoryCache.current.set(categoryId, cat.name)
+        setState(s => ({
+          ...s,
+          history: s.history.map(entry =>
+            entry.categoryId === categoryId && entry.categoryName === null
+              ? { ...entry, categoryName: cat.name }
+              : entry
+          ),
+        }))
+      })
+      .catch(() => {})
+  }
 
-    // Navigate forward through existing history without fetching
-    if (currentIndex < history.length - 1) {
-      setState(s => ({ ...s, currentIndex: s.currentIndex + 1, isRevealed: false }))
-      return
+  function mapClue(raw) {
+    return {
+      clueId: raw.clueId,
+      categoryId: raw.categoryId,
+      question: raw.question,
+      answer: raw.answer,
+      categoryName: categoryCache.current.get(raw.categoryId) ?? null,
     }
+  }
 
-    // Need to fetch a new clue
-    setState(s => ({ ...s, isLoading: true, error: null }))
+  function dedup(clues) {
+    const out = []
+    for (const c of clues) {
+      if (!seenIds.current.has(c.clueId)) {
+        seenIds.current.add(c.clueId)
+        out.push(c)
+      }
+    }
+    return out
+  }
 
+  // Runs in background: keeps the buffer at BUFFER_SIZE clues ahead of currentIndex.
+  // Serialized via isReplenishing so only one loop runs at a time.
+  async function replenish() {
+    if (isReplenishing.current) return
+    isReplenishing.current = true
     try {
-      let clue = await fetchRandomClue()
-      if (seenIds.current.has(clue.clueId)) {
-        clue = await fetchRandomClue()
-      }
-      seenIds.current.add(clue.clueId)
+      while (true) {
+        const { history, currentIndex } = stateRef.current
+        const ahead = history.length - 1 - currentIndex
+        if (ahead >= BUFFER_SIZE) break
 
-      const newClue = {
-        clueId: clue.clueId,
-        categoryId: clue.categoryId,
-        question: clue.question,
-        answer: clue.answer,
-        categoryName: categoryCache.current.get(clue.categoryId) ?? null,
+        const raw = await fetchRandomClues(1)
+        const [clue] = dedup(raw)
+        if (!clue) continue // already seen, skip
+
+        setState(s => ({ ...s, history: [...s.history, mapClue(clue)] }))
+        prefetchCategory(clue.categoryId)
       }
+    } catch {
+      // silent — buffer replenishment failures are non-fatal
+    }
+    isReplenishing.current = false
+  }
+
+  // Initial load: fetch BUFFER_SIZE clues at once, show the first immediately.
+  async function initialize() {
+    setState(s => ({ ...s, isLoading: true, error: null }))
+    try {
+      const raw = await fetchRandomClues(BUFFER_SIZE)
+      const clues = dedup(raw)
 
       setState(s => ({
         ...s,
-        history: [...s.history, newClue],
-        currentIndex: s.history.length,
+        history: clues.map(mapClue),
+        currentIndex: 0,
         isRevealed: false,
         isLoading: false,
         error: null,
       }))
 
-      // Fire-and-forget category fetch
-      if (!categoryCache.current.has(clue.categoryId)) {
-        fetchCategory(clue.categoryId)
-          .then(cat => {
-            categoryCache.current.set(clue.categoryId, cat.name)
-            setState(s => ({
-              ...s,
-              history: s.history.map(entry =>
-                entry.categoryId === clue.categoryId && entry.categoryName === null
-                  ? { ...entry, categoryName: cat.name }
-                  : entry
-              ),
-            }))
-          })
-          .catch(() => {
-            // Category fetch failed — categoryName stays null, header shows —
-          })
+      for (const c of clues) prefetchCategory(c.categoryId)
+    } catch (err) {
+      setState(s => ({ ...s, isLoading: false, error: err.message }))
+    }
+  }
+
+  async function advanceForward() {
+    const { history, currentIndex } = stateRef.current
+
+    // First ever call — do the bulk initial load
+    if (currentIndex === -1 && history.length === 0) {
+      return initialize()
+    }
+
+    // Buffer has clues ready — advance instantly
+    if (currentIndex < history.length - 1) {
+      setState(s => ({ ...s, currentIndex: s.currentIndex + 1, isRevealed: false }))
+      replenish()
+      return
+    }
+
+    // Buffer empty (shouldn't normally happen) — fetch one and wait
+    setState(s => ({ ...s, isLoading: true, error: null }))
+    try {
+      let raw = await fetchRandomClues(1)
+      let [clue] = dedup(raw)
+      if (!clue) {
+        raw = await fetchRandomClues(1)
+        ;[clue] = dedup(raw)
       }
+
+      if (!clue) throw new Error('No clue available')
+
+      setState(s => ({
+        ...s,
+        history: [...s.history, mapClue(clue)],
+        currentIndex: s.history.length,
+        isRevealed: false,
+        isLoading: false,
+        error: null,
+      }))
+      prefetchCategory(clue.categoryId)
+      replenish()
     } catch (err) {
       setState(s => ({ ...s, isLoading: false, error: err.message }))
     }

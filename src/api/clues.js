@@ -1,8 +1,7 @@
-export async function fetchRandomClue() {
-  const res = await fetch('/api/clue?random=true&limit=1')
+export async function fetchRandomClues(limit = 1) {
+  const res = await fetch(`/api/clue?random=true&limit=${limit}`)
   if (!res.ok) throw new Error(`${res.status}`)
-  const [clue] = await res.json()
-  return clue
+  return res.json()
 }
 
 export async function fetchCategory(categoryId) {
