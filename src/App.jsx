@@ -202,7 +202,7 @@ export default function App() {
                   clue={currentClue}
                   isRevealed={isRevealed}
                   onTap={handleTap}
-                  promptIcon={onboardingPhase === 'tap' ? '/src/resources/tap_icon.png' : undefined}
+                  promptIcon={onboardingPhase === 'tap' ? '/resources/tap_icon.png' : undefined}
                 />
                 {onboardingPhase === 'swipe' && isRevealed && (
                   <div data-name="onboarding-prompt" style={{
@@ -215,7 +215,7 @@ export default function App() {
                     pointerEvents: 'none',
                     zIndex: 'var(--z-overlay)',
                   }}>
-                    <img src="/src/resources/swipe_icon.png" alt="Swipe up for next clue" style={{ height: 72, filter: 'brightness(0) invert(1)', animation: 'swipeHint 1.3s ease-in-out infinite' }} />
+                    <img src="/resources/swipe_icon.png" alt="Swipe up for next clue" style={{ height: 72, filter: 'brightness(0) invert(1)', animation: 'swipeHint 1.3s ease-in-out infinite' }} />
                   </div>
                 )}
               </>
