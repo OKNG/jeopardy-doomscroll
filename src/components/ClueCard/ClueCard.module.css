@@ -19,6 +19,7 @@
   max-width: 36rem;
   position: relative;
   z-index: var(--z-card);
+  text-transform: uppercase;
 }
 
 /* Answer text — full-card overlay, starts invisible */
@@ -34,16 +35,14 @@
   color: var(--color-text-primary);
   text-align: center;
   line-height: 1.5;
+  text-transform: uppercase;
   background: var(--color-bg);
   z-index: var(--z-overlay);
-  transform: translateY(16px);
   opacity: 0;
-  transition: transform 300ms ease, opacity 300ms ease;
   pointer-events: none;
 }
 
 .answerText.answerVisible {
-  transform: translateY(0);
   opacity: 1;
 }
 
