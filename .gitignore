@@ -9,6 +9,8 @@ dist/
 # Vite
 .vite/
 
+# claude
+.claude/
 # Local env
 .env
 .env.local
