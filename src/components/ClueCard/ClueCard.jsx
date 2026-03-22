@@ -18,9 +18,9 @@ export function ClueCard({ clue, isRevealed, onTap, promptIcon }) {
               transform: 'translateX(-50%)',
               marginTop: 'var(--space-6)',
               height: 72,
-              opacity: 0.4,
               pointerEvents: 'none',
               filter: 'brightness(0) invert(1)',
+              animation: 'pulse 2s ease-in-out infinite',
             }} />
           )}
         </div>

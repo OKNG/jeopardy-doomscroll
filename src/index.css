@@ -81,6 +81,11 @@ body {
   min-height: 100dvh;
 }
 
+@keyframes pulse {
+  0%, 100% { opacity: 0.2; }
+  50% { opacity: 0.6; }
+}
+
 @keyframes swipeHint {
   0%   { transform: translateY(0);    opacity: 0.5; }
   60%  { transform: translateY(-15vh); opacity: 0; }

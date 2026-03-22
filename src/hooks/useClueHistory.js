@@ -18,6 +18,7 @@ export function useClueHistory() {
   const categoryCache = useRef(new Map())
   const seenIds = useRef(new Set())
   const isReplenishing = useRef(false)
+  const isInitializing = useRef(false)
 
   function prefetchCategory(categoryId) {
     if (categoryCache.current.has(categoryId)) return
@@ -81,23 +82,42 @@ export function useClueHistory() {
     isReplenishing.current = false
   }
 
-  // Initial load: fetch BUFFER_SIZE clues at once, show the first immediately.
+  // Initial load: fetch BUFFER_SIZE clues at once, wait for the first clue's
+  // category name before showing the card.
   async function initialize() {
+    if (isInitializing.current) return
+    isInitializing.current = true
     setState(s => ({ ...s, isLoading: true, error: null }))
     try {
       const raw = await fetchRandomClues(BUFFER_SIZE)
       const clues = dedup(raw)
+      const mapped = clues.map(mapClue)
+
+      // Await the first clue's category so the splash screen stays up
+      const first = mapped[0]
+      if (first && first.categoryName === null) {
+        try {
+          const cat = await fetchCategory(first.categoryId)
+          categoryCache.current.set(first.categoryId, cat.name)
+          for (const c of mapped) {
+            if (c.categoryId === first.categoryId) c.categoryName = cat.name
+          }
+        } catch {
+          // Category fetch failed — show card anyway with "—"
+        }
+      }
 
       setState(s => ({
         ...s,
-        history: clues.map(mapClue),
+        history: mapped,
         currentIndex: 0,
         isRevealed: false,
         isLoading: false,
         error: null,
       }))
 
-      for (const c of clues) prefetchCategory(c.categoryId)
+      // Prefetch remaining categories in the background
+      for (const c of clues.slice(1)) prefetchCategory(c.categoryId)
     } catch (err) {
       setState(s => ({ ...s, isLoading: false, error: err.message }))
     }
