@@ -1,18 +1,10 @@
 import styles from './ClueCard.module.css'
 
-const phaseClass = {
-  idle:            styles.idle,
-  'exiting-up':    styles.exitingUp,
-  'exiting-down':  styles.exitingDown,
-  'entering-up':   styles.enteringUp,
-  'entering-down': styles.enteringDown,
-}
-
-export function ClueCard({ clue, isRevealed, transitionPhase, onTap }) {
+export function ClueCard({ clue, isRevealed, onTap }) {
   return (
     <div
       data-name="clue-card"
-      className={`${styles.card} ${phaseClass[transitionPhase] ?? styles.idle}`}
+      className={styles.card}
       onClick={onTap}
     >
       <div data-name="clue-content" className={`${styles.content} ${isRevealed ? styles.revealed : ''}`}>

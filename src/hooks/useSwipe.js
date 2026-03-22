@@ -1,11 +1,10 @@
-import { useRef, useState, useEffect } from 'react'
+import { useRef, useEffect } from 'react'
 
 const V_THRESHOLD = 80
 const LOCK_DIST = 10
 
-export function useSwipe({ onSwipeUp, onSwipeDown, disabled } = {}) {
+export function useSwipe({ onDragMove, onSwipeUp, onSwipeDown, onDragEnd, disabled } = {}) {
   const ref = useRef(null)
-  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
 
   const startX = useRef(0)
   const startY = useRef(0)
@@ -13,7 +12,7 @@ export function useSwipe({ onSwipeUp, onSwipeDown, disabled } = {}) {
   const dragActive = useRef(false)
 
   const callbacks = useRef({})
-  callbacks.current = { onSwipeUp, onSwipeDown }
+  callbacks.current = { onDragMove, onSwipeUp, onSwipeDown, onDragEnd }
   const disabledRef = useRef(disabled)
   disabledRef.current = disabled
 
@@ -22,6 +21,7 @@ export function useSwipe({ onSwipeUp, onSwipeDown, disabled } = {}) {
     if (!el) return
 
     function onPointerDown(e) {
+      if (disabledRef.current) return
       dragActive.current = true
       startX.current = e.clientX
       startY.current = e.clientY
@@ -44,7 +44,7 @@ export function useSwipe({ onSwipeUp, onSwipeDown, disabled } = {}) {
       e.preventDefault()
 
       if (lockedAxis.current === 'v') {
-        setDragOffset({ x: 0, y: dy })
+        callbacks.current.onDragMove?.(dy)
       }
     }
 
@@ -56,15 +56,20 @@ export function useSwipe({ onSwipeUp, onSwipeDown, disabled } = {}) {
 
       dragActive.current = false
       lockedAxis.current = null
-      setDragOffset({ x: 0, y: 0 })
 
-      if (disabledRef.current) return
-
-      if (axis === 'v') {
-        const { onSwipeUp, onSwipeDown } = callbacks.current
-        if (dy < -V_THRESHOLD) { e.stopPropagation(); onSwipeUp?.() }
-        else if (dy > V_THRESHOLD) { e.stopPropagation(); onSwipeDown?.() }
+      if (axis === 'v' && !disabledRef.current) {
+        if (dy < -V_THRESHOLD) { e.stopPropagation(); callbacks.current.onSwipeUp?.(); return }
+        if (dy > V_THRESHOLD) { e.stopPropagation(); callbacks.current.onSwipeDown?.(); return }
       }
+
+      callbacks.current.onDragEnd?.()
+    }
+
+    function onPointerCancel() {
+      if (!dragActive.current) return
+      dragActive.current = false
+      lockedAxis.current = null
+      callbacks.current.onDragEnd?.()
     }
 
     function onClick(e) {
@@ -78,21 +83,17 @@ export function useSwipe({ onSwipeUp, onSwipeDown, disabled } = {}) {
     el.addEventListener('pointerdown', onPointerDown)
     el.addEventListener('pointermove', onPointerMove, { passive: false })
     el.addEventListener('pointerup', onPointerUp)
-    el.addEventListener('pointercancel', onPointerUp)
+    el.addEventListener('pointercancel', onPointerCancel)
     el.addEventListener('click', onClick, { capture: true })
 
     return () => {
       el.removeEventListener('pointerdown', onPointerDown)
       el.removeEventListener('pointermove', onPointerMove)
       el.removeEventListener('pointerup', onPointerUp)
-      el.removeEventListener('pointercancel', onPointerUp)
+      el.removeEventListener('pointercancel', onPointerCancel)
       el.removeEventListener('click', onClick, { capture: true })
     }
   }, [])
 
-  const dragStyle = dragOffset.y
-    ? { transform: `translateY(${dragOffset.y}px)`, transition: 'none' }
-    : {}
-
-  return { ref, dragStyle }
+  return { ref }
 }

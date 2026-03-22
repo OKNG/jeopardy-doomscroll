@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(cd \"C:\\\\Users\\\\noahr\\\\OneDrive\\\\Documents\\\\GitHub\\\\jeopardy-doomscroll\" && npm create vite@latest . -- --template react 2>&1)",
-      "Bash(ls /c/Users/noahr/OneDrive/Documents/GitHub/jeopardy-doomscroll/design/ 2>/dev/null && cat /c/Users/noahr/OneDrive/Documents/GitHub/jeopardy-doomscroll/design/*)"
+      "Bash(ls /c/Users/noahr/OneDrive/Documents/GitHub/jeopardy-doomscroll/design/ 2>/dev/null && cat /c/Users/noahr/OneDrive/Documents/GitHub/jeopardy-doomscroll/design/*)",
+      "Bash(npx vite:*)"
     ]
   }
 }

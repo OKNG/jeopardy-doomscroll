@@ -20,11 +20,11 @@
   max-width: 36rem;
   width: 100%;
   transform: translateY(0);
-  transition: transform 300ms ease;
 }
 
 .content.revealed {
   transform: translateY(-22%);
+  transition: transform 300ms ease;
 }
 
 .question {
@@ -48,35 +48,4 @@
 
 .content.revealed .answer {
   opacity: 1;
-}
-
-/* Transition phases */
-.idle {
-  transform: translateY(0);
-  opacity: 1;
-  transition: transform 200ms ease, opacity 200ms ease;
-}
-
-.exitingUp {
-  transform: translateY(-40px);
-  opacity: 0;
-  transition: transform 180ms ease, opacity 180ms ease;
-}
-
-.exitingDown {
-  transform: translateY(40px);
-  opacity: 0;
-  transition: transform 180ms ease, opacity 180ms ease;
-}
-
-.enteringUp {
-  transform: translateY(-40px);
-  opacity: 0;
-  transition: none;
-}
-
-.enteringDown {
-  transform: translateY(40px);
-  opacity: 0;
-  transition: none;
 }
