@@ -47,13 +47,13 @@ export function useClueHistory() {
     }
   }
 
-  function dedup(clues) {
+  function filterClues(clues) {
     const out = []
     for (const c of clues) {
-      if (!seenIds.current.has(c.clueId)) {
-        seenIds.current.add(c.clueId)
-        out.push(c)
-      }
+      if (seenIds.current.has(c.clueId)) continue
+      if (c.question && c.question.toLowerCase().includes('seen here')) continue // Filter out clues that reference image/videos
+      seenIds.current.add(c.clueId)
+      out.push(c)
     }
     return out
   }
@@ -70,7 +70,7 @@ export function useClueHistory() {
         if (ahead >= BUFFER_SIZE) break
 
         const raw = await fetchRandomClues(1)
-        const [clue] = dedup(raw)
+        const [clue] = filterClues(raw)
         if (!clue) continue // already seen, skip
 
         setState(s => ({ ...s, history: [...s.history, mapClue(clue)] }))
@@ -90,7 +90,7 @@ export function useClueHistory() {
     setState(s => ({ ...s, isLoading: true, error: null }))
     try {
       const raw = await fetchRandomClues(BUFFER_SIZE)
-      const clues = dedup(raw)
+      const clues = filterClues(raw)
       const mapped = clues.map(mapClue)
 
       // Await the first clue's category so the splash screen stays up
@@ -142,10 +142,10 @@ export function useClueHistory() {
     setState(s => ({ ...s, isLoading: true, error: null }))
     try {
       let raw = await fetchRandomClues(1)
-      let [clue] = dedup(raw)
+      let [clue] = filterClues(raw)
       if (!clue) {
         raw = await fetchRandomClues(1)
-        ;[clue] = dedup(raw)
+        ;[clue] = filterClues(raw)
       }
 
       if (!clue) throw new Error('No clue available')
