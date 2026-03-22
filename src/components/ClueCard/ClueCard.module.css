@@ -48,4 +48,5 @@
 
 .content.revealed .answer {
   opacity: 1;
+  transition: opacity 600ms ease;
 }
