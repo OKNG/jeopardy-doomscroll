@@ -1,10 +1,9 @@
 import { useRef, useState, useEffect } from 'react'
 
-const H_THRESHOLD = 60
 const V_THRESHOLD = 80
 const LOCK_DIST = 10
 
-export function useSwipe({ onSwipeLeft, onSwipeRight, onSwipeUp, onSwipeDown, disabled } = {}) {
+export function useSwipe({ onSwipeUp, onSwipeDown, disabled } = {}) {
   const ref = useRef(null)
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
 
@@ -13,9 +12,8 @@ export function useSwipe({ onSwipeLeft, onSwipeRight, onSwipeUp, onSwipeDown, di
   const lockedAxis = useRef(null) // 'h' | 'v' | null
   const dragActive = useRef(false)
 
-  // Keep callbacks in refs so the effect doesn't need to re-run when they change
   const callbacks = useRef({})
-  callbacks.current = { onSwipeLeft, onSwipeRight, onSwipeUp, onSwipeDown }
+  callbacks.current = { onSwipeUp, onSwipeDown }
   const disabledRef = useRef(disabled)
   disabledRef.current = disabled
 
@@ -45,9 +43,7 @@ export function useSwipe({ onSwipeLeft, onSwipeRight, onSwipeUp, onSwipeDown, di
 
       e.preventDefault()
 
-      if (lockedAxis.current === 'h') {
-        setDragOffset({ x: dx, y: 0 })
-      } else {
+      if (lockedAxis.current === 'v') {
         setDragOffset({ x: 0, y: dy })
       }
     }
@@ -55,25 +51,27 @@ export function useSwipe({ onSwipeLeft, onSwipeRight, onSwipeUp, onSwipeDown, di
     function onPointerUp(e) {
       if (!dragActive.current) return
 
-      const dx = e.clientX - startX.current
       const dy = e.clientY - startY.current
       const axis = lockedAxis.current
 
-      // Reset all tracking state
       dragActive.current = false
       lockedAxis.current = null
       setDragOffset({ x: 0, y: 0 })
 
       if (disabledRef.current) return
 
-      const { onSwipeLeft, onSwipeRight, onSwipeUp, onSwipeDown } = callbacks.current
+      if (axis === 'v') {
+        const { onSwipeUp, onSwipeDown } = callbacks.current
+        if (dy < -V_THRESHOLD) { e.stopPropagation(); onSwipeUp?.() }
+        else if (dy > V_THRESHOLD) { e.stopPropagation(); onSwipeDown?.() }
+      }
+    }
 
-      if (axis === 'h') {
-        if (dx < -H_THRESHOLD) onSwipeLeft?.()
-        else if (dx > H_THRESHOLD) onSwipeRight?.()
-      } else if (axis === 'v') {
-        if (dy < -V_THRESHOLD) onSwipeUp?.()
-        else if (dy > V_THRESHOLD) onSwipeDown?.()
+    function onClick(e) {
+      // Suppress clicks that follow a swipe gesture
+      if (Math.abs(e.clientX - startX.current) > LOCK_DIST ||
+          Math.abs(e.clientY - startY.current) > LOCK_DIST) {
+        e.stopPropagation()
       }
     }
 
@@ -81,19 +79,20 @@ export function useSwipe({ onSwipeLeft, onSwipeRight, onSwipeUp, onSwipeDown, di
     el.addEventListener('pointermove', onPointerMove, { passive: false })
     el.addEventListener('pointerup', onPointerUp)
     el.addEventListener('pointercancel', onPointerUp)
+    el.addEventListener('click', onClick, { capture: true })
 
     return () => {
       el.removeEventListener('pointerdown', onPointerDown)
       el.removeEventListener('pointermove', onPointerMove)
       el.removeEventListener('pointerup', onPointerUp)
       el.removeEventListener('pointercancel', onPointerUp)
+      el.removeEventListener('click', onClick, { capture: true })
     }
-  }, []) // stable — uses refs for everything that changes
+  }, [])
 
-  const dragStyle =
-    dragOffset.x || dragOffset.y
-      ? { transform: `translateX(${dragOffset.x}px) translateY(${dragOffset.y}px)`, transition: 'none' }
-      : {}
+  const dragStyle = dragOffset.y
+    ? { transform: `translateY(${dragOffset.y}px)`, transition: 'none' }
+    : {}
 
   return { ref, dragStyle }
 }

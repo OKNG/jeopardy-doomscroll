@@ -61,12 +61,15 @@ export default function App() {
   }
 
   const { ref, dragStyle } = useSwipe({
-    onSwipeLeft: revealAnswer,
-    onSwipeRight: hideAnswer,
     onSwipeUp: handleSwipeUp,
     onSwipeDown: handleSwipeDown,
     disabled: isAnimating.current,
   })
+
+  function handleTap() {
+    if (isRevealed) hideAnswer()
+    else revealAnswer()
+  }
 
   useEffect(() => {
     advanceForward()
@@ -119,6 +122,7 @@ export default function App() {
             clue={currentClue}
             isRevealed={isRevealed}
             transitionPhase={transitionPhase}
+            onTap={handleTap}
           />
         )}
       </div>
