@@ -80,3 +80,9 @@ body {
   color: var(--color-text-primary);
   min-height: 100dvh;
 }
+
+@keyframes swipeHint {
+  0%   { transform: translateY(0);    opacity: 0.5; }
+  60%  { transform: translateY(-15vh); opacity: 0; }
+  100% { transform: translateY(-15vh); opacity: 0; }
+}
