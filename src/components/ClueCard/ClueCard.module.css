@@ -50,3 +50,13 @@
   opacity: 1;
   transition: opacity 600ms ease;
 }
+
+.correct {
+  box-shadow: inset 0 0 0 4px var(--color-correct);
+  transition: box-shadow 300ms ease;
+}
+
+.incorrect {
+  box-shadow: inset 0 0 0 4px var(--color-incorrect);
+  transition: box-shadow 300ms ease;
+}

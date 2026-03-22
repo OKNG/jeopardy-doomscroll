@@ -1,6 +1,8 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { useClueHistory } from './hooks/useClueHistory'
 import { useSwipe } from './hooks/useSwipe'
+import { useSpeechRecognition } from './hooks/useSpeechRecognition'
+import { checkAnswer } from './utils/answerMatch'
 import { CategoryHeader } from './components/CategoryHeader/CategoryHeader'
 import { ClueCard } from './components/ClueCard/ClueCard'
 import { LoadingCard } from './components/LoadingCard/LoadingCard'
@@ -10,25 +12,65 @@ export default function App() {
     history,
     currentIndex,
     isRevealed,
+    answerResult,
     isLoading,
     error,
     advanceForward,
     goBack,
     revealAnswer,
     hideAnswer,
+    setAnswerResult,
     retry,
   } = useClueHistory()
 
+  const [answerMode, setAnswerMode] = useState(() => {
+    try { return localStorage.getItem('answerMode') === 'on' } catch { return false }
+  })
   const [containerOffset, setContainerOffset] = useState(0)
   const [isSnapping, setIsSnapping] = useState(false)
   const [onboardingPhase, setOnboardingPhase] = useState('tap') // 'tap' | 'swipe' | 'done'
   const offsetRef = useRef(0)
   const snapDirection = useRef(null) // 'up' | 'down' | 'back' | null
   const isAnimating = useRef(false)
+  const revealTimerRef = useRef(null)
 
   const currentClue = currentIndex >= 0 ? history[currentIndex] : null
   const prevClue = currentIndex > 0 ? history[currentIndex - 1] : null
   const nextClue = currentIndex < history.length - 1 ? history[currentIndex + 1] : null
+
+  const handleSpeechResult = useCallback((transcripts, error) => {
+    if (error === 'mic-denied') {
+      setAnswerResult(null)
+      revealAnswer()
+      return
+    }
+
+    const answer = history[currentIndex]?.answer
+    console.log('[Speech] transcripts:', transcripts, '| correct answer:', answer)
+
+    if (transcripts.length === 0 || !answer) {
+      setAnswerResult('incorrect')
+    } else {
+      const results = transcripts.map(t => ({ transcript: t, ...checkAnswer(t, answer) }))
+      console.log('[Speech] match results:', results)
+      const matched = results.some(r => r.match)
+      setAnswerResult(matched ? 'correct' : 'incorrect')
+    }
+
+    revealTimerRef.current = setTimeout(() => {
+      revealAnswer()
+      if (onboardingPhase === 'tap') setOnboardingPhase('swipe')
+    }, 1500)
+  }, [history, currentIndex, revealAnswer, setAnswerResult, onboardingPhase])
+
+  const { start: speechStart, stop: speechStop, isListening, isSupported: speechSupported } = useSpeechRecognition({
+    onResult: handleSpeechResult,
+  })
+
+  // Clean up reveal timer on unmount or navigation
+  useEffect(() => {
+    return () => clearTimeout(revealTimerRef.current)
+  }, [])
 
   function setOffset(val) {
     offsetRef.current = val
@@ -59,6 +101,9 @@ export default function App() {
       setOffset(0)
       return
     }
+    // Cancel listening if swiping away
+    if (isListening) speechStop()
+    clearTimeout(revealTimerRef.current)
     isAnimating.current = true
     snapDirection.current = 'up'
     setIsSnapping(true)
@@ -75,6 +120,9 @@ export default function App() {
       setOffset(0)
       return
     }
+    // Cancel listening if swiping away
+    if (isListening) speechStop()
+    clearTimeout(revealTimerRef.current)
     isAnimating.current = true
     snapDirection.current = 'down'
     setIsSnapping(true)
@@ -115,9 +163,25 @@ export default function App() {
     disabled: isAnimating.current,
   })
 
+  function toggleAnswerMode() {
+    setAnswerMode(prev => {
+      const next = !prev
+      try { localStorage.setItem('answerMode', next ? 'on' : 'off') } catch {}
+      return next
+    })
+  }
+
   function handleTap() {
-    revealAnswer()
-    if (onboardingPhase === 'tap') setOnboardingPhase('swipe')
+    if (isRevealed || answerResult === 'listening') return
+
+    if (!answerMode || !speechSupported) {
+      revealAnswer()
+      if (onboardingPhase === 'tap') setOnboardingPhase('swipe')
+      return
+    }
+
+    setAnswerResult('listening')
+    speechStart()
   }
 
   useEffect(() => {
@@ -142,6 +206,48 @@ export default function App() {
 
   return (
     <div data-name="app-root" style={{ position: 'fixed', inset: 0, overflow: 'hidden' }}>
+      <div
+        data-name="answer-mode-toggle"
+        onClick={toggleAnswerMode}
+        style={{
+          position: 'fixed',
+          top: '80px',
+          right: 12,
+          zIndex: 50,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          cursor: 'pointer',
+          userSelect: 'none',
+        }}
+        title={answerMode ? 'Answer mode: ON' : 'Answer mode: OFF'}
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ opacity: answerMode ? 0.8 : 0.4, transition: 'opacity 200ms' }}>
+          <rect x="9" y="2" width="6" height="12" rx="3" fill="white" />
+          <path d="M5 11a7 7 0 0 0 14 0" stroke="white" strokeWidth="2" strokeLinecap="round" />
+          <line x1="12" y1="18" x2="12" y2="22" stroke="white" strokeWidth="2" strokeLinecap="round" />
+        </svg>
+        <div style={{
+          width: 40,
+          height: 22,
+          borderRadius: 11,
+          background: answerMode ? 'var(--color-correct)' : 'rgba(255,255,255,0.2)',
+          border: '1px solid rgba(255,255,255,0.3)',
+          position: 'relative',
+          transition: 'background 200ms',
+        }}>
+          <div style={{
+            width: 16,
+            height: 16,
+            borderRadius: '50%',
+            background: 'white',
+            position: 'absolute',
+            top: 2,
+            left: answerMode ? 21 : 2,
+            transition: 'left 200ms',
+          }} />
+        </div>
+      </div>
       <div
         data-name="swipe-container"
         ref={ref}
@@ -202,6 +308,7 @@ export default function App() {
                   clue={currentClue}
                   isRevealed={isRevealed}
                   onTap={handleTap}
+                  answerResult={answerResult}
                   promptIcon={onboardingPhase === 'tap' ? '/resources/tap_icon.png' : undefined}
                 />
                 {onboardingPhase === 'swipe' && isRevealed && (

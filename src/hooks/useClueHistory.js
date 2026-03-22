@@ -10,6 +10,7 @@ export function useClueHistory() {
     isRevealed: false,
     isLoading: false,
     error: null,
+    answerResult: null, // null | 'correct' | 'incorrect' | 'listening'
   })
 
   const stateRef = useRef(state)
@@ -133,7 +134,7 @@ export function useClueHistory() {
 
     // Buffer has clues ready — advance instantly
     if (currentIndex < history.length - 1) {
-      setState(s => ({ ...s, currentIndex: s.currentIndex + 1, isRevealed: false }))
+      setState(s => ({ ...s, currentIndex: s.currentIndex + 1, isRevealed: false, answerResult: null }))
       replenish()
       return
     }
@@ -168,7 +169,7 @@ export function useClueHistory() {
   function goBack() {
     setState(s => {
       if (s.currentIndex <= 0) return s
-      return { ...s, currentIndex: s.currentIndex - 1, isRevealed: false }
+      return { ...s, currentIndex: s.currentIndex - 1, isRevealed: false, answerResult: null }
     })
   }
 
@@ -180,6 +181,10 @@ export function useClueHistory() {
     setState(s => ({ ...s, isRevealed: false }))
   }
 
+  function setAnswerResult(result) {
+    setState(s => ({ ...s, answerResult: result }))
+  }
+
   function retry() {
     advanceForward()
   }
@@ -188,12 +193,14 @@ export function useClueHistory() {
     history: state.history,
     currentIndex: state.currentIndex,
     isRevealed: state.isRevealed,
+    answerResult: state.answerResult,
     isLoading: state.isLoading,
     error: state.error,
     advanceForward,
     goBack,
     revealAnswer,
     hideAnswer,
+    setAnswerResult,
     retry,
   }
 }

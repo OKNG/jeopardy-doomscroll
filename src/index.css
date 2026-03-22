@@ -57,6 +57,10 @@
   --z-overlay: 20;
   --z-header:  30;
 
+  /* Answer feedback */
+  --color-correct:   #4caf50;
+  --color-incorrect: #f44336;
+
   /* Semantic extras */
   --color-answer-bg: #060ce9;
 }
