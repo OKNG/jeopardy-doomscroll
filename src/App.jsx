@@ -76,10 +76,11 @@ export default function App() {
   }, [])
 
   return (
-    <div style={{ position: 'fixed', inset: 0, overflow: 'hidden' }}>
+    <div data-name="app-root" style={{ position: 'fixed', inset: 0, overflow: 'hidden' }}>
       <CategoryHeader categoryName={currentClue?.categoryName ?? null} />
 
       <div
+        data-name="swipe-container"
         ref={ref}
         style={{ ...dragStyle, height: '100%', touchAction: 'none', cursor: 'grab' }}
       >
