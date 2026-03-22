@@ -21,6 +21,7 @@ export default function App() {
 
   const [containerOffset, setContainerOffset] = useState(0)
   const [isSnapping, setIsSnapping] = useState(false)
+  const [onboardingPhase, setOnboardingPhase] = useState('tap') // 'tap' | 'swipe' | 'done'
   const offsetRef = useRef(0)
   const snapDirection = useRef(null) // 'up' | 'down' | 'back' | null
   const isAnimating = useRef(false)
@@ -62,6 +63,7 @@ export default function App() {
     snapDirection.current = 'up'
     setIsSnapping(true)
     setOffset(-window.innerHeight)
+    if (onboardingPhase === 'swipe') setOnboardingPhase('done')
   }
 
   function handleSwipeDown() {
@@ -115,6 +117,7 @@ export default function App() {
 
   function handleTap() {
     revealAnswer()
+    if (onboardingPhase === 'tap') setOnboardingPhase('swipe')
   }
 
   useEffect(() => {
@@ -195,7 +198,26 @@ export default function App() {
             ) : (
               <>
                 <CategoryHeader categoryName={currentClue?.categoryName ?? null} />
-                <ClueCard clue={currentClue} isRevealed={isRevealed} onTap={handleTap} />
+                <ClueCard
+                  clue={currentClue}
+                  isRevealed={isRevealed}
+                  onTap={handleTap}
+                  promptIcon={onboardingPhase === 'tap' ? '/src/resources/tap_icon.png' : undefined}
+                />
+                {onboardingPhase === 'swipe' && isRevealed && (
+                  <div data-name="onboarding-prompt" style={{
+                    position: 'absolute',
+                    bottom: '10vh',
+                    left: 0,
+                    right: 0,
+                    display: 'flex',
+                    justifyContent: 'center',
+                    pointerEvents: 'none',
+                    zIndex: 'var(--z-overlay)',
+                  }}>
+                    <img src="/src/resources/swipe_icon.png" alt="Swipe up for next clue" style={{ height: 72, opacity: 0.4, filter: 'brightness(0) invert(1)' }} />
+                  </div>
+                )}
               </>
             )}
           </div>
