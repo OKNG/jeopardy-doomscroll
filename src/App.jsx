@@ -67,8 +67,7 @@ export default function App() {
   })
 
   function handleTap() {
-    if (isRevealed) hideAnswer()
-    else revealAnswer()
+    revealAnswer()
   }
 
   useEffect(() => {
