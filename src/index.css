@@ -1,0 +1,79 @@
+@font-face {
+  font-family: 'ITC Korinna';
+  src: local('ITC Korinna'),
+       url('/fonts/ITCKorinna.woff2') format('woff2');
+  font-weight: 400 700;
+  font-style: normal;
+}
+
+:root {
+  /* Palette */
+  --color-primary:      #060ce9;
+  --color-secondary:    #115ff4;
+  --color-gray-100:     #cccccc;
+  --color-gray-200:     #bbbbbb;
+  --color-gray-300:     #aaaaaa;
+
+  /* Semantic */
+  --color-bg:           #060ce9;
+  --color-surface:      #115ff4;
+  --color-border:       #060ce9;
+  --color-text-primary: #ffffff;
+  --color-text-muted:   #cccccc;
+  --color-text-disabled:#aaaaaa;
+
+  /* Typography */
+  --font-family: 'ITC Korinna', Georgia, serif;
+
+  /* Spacing */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  24px;
+  --space-6:  32px;
+  --space-7:  48px;
+  --space-8:  64px;
+
+  /* Radii */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 16px;
+
+  /* Shadows */
+  --shadow-card:       inset 0 0 0 3px var(--color-secondary);
+  --shadow-card-hover: inset 0 0 0 3px rgba(255,255,255,0.25);
+
+  /* Type scale */
+  --text-xs:   0.75rem;
+  --text-sm:   0.875rem;
+  --text-base: 1rem;
+  --text-lg:   1.25rem;
+  --text-xl:   1.5rem;
+  --text-2xl:  2rem;
+
+  /* Z-index */
+  --z-card:    10;
+  --z-overlay: 20;
+  --z-header:  30;
+
+  /* Semantic extras */
+  --color-answer-bg: #060ce9;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-family: var(--font-family);
+  font-size: 16px;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text-primary);
+  min-height: 100dvh;
+}
